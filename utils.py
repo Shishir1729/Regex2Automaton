@@ -107,13 +107,12 @@ class ETree:
             for state in range(fsaX.numStates, numStates):
                 alphabetTransitions[symbol][state] = [0] * fsaX.numStates + fsaY.alphabetTransitions[symbol][state-fsaX.numStates]
         
-        for i in fsaX.startStates:
-            if i in fsaX.finalStates:
-                for j in fsaY.startStates:
-                    for symbol in 'abc':
-                        for k in range(fsaY.numStates):
-                            if fsaY.alphabetTransitions[symbol][j][k] == 1:
-                                alphabetTransitions[symbol][i][fsaX.numStates+k] = 1
+        for state in fsaX.startStates:
+            if state in fsaX.finalStates:
+                startStates.extend([state + fsaX.numStates for state in fsaY.startStates])
+                break
+
+        alphabetTransitions['e'] = [[1 if i == j else 0 for j in range(numStates)] for i in range(numStates)]
         
         fsa = NFA(numStates=numStates, startStates=startStates, finalStates=finalStates, alphabetTransitions=alphabetTransitions)
         return fsa
@@ -135,6 +134,8 @@ class ETree:
             for state in range(fsaX.numStates):
                 fsaY.alphabetTransitions[symbol][state] = fsaX.alphabetTransitions[symbol][state]
                 fsaY.alphabetTransitions[symbol][state].extend([0]*(fsaY.numStates-fsaX.numStates))
+        
+        fsaY.alphabetTransitions['e'] = [[1 if i == j else 0 for j in range(fsaY.numStates)] for i in range(fsaY.numStates)]
 
         fsaY.startStates = fsaX.startStates + fsaY.startStates
         fsaY.finalStates = fsaX.finalStates + fsaY.finalStates
@@ -163,6 +164,8 @@ class ETree:
                     for i in range(fsaX.numStates):
                         if fsaX.alphabetTransitions[symbol][state][i] == 1 and i in fsaX.finalStates:
                             fsaX.alphabetTransitions[symbol][fsaX.numStates][fsaX.numStates] = 1
+            
+        fsaX.alphabetTransitions['e'] = [[1 if i == j else 0 for j in range(fsaX.numStates+1)] for i in range(fsaX.numStates+1)]
 
 
             
@@ -175,14 +178,14 @@ class ETree:
     # a, b, c and e for epsilon
     def alphabet(self, symbol):
         if symbol == 'e':
-            fsa = NFA(numStates=1, startStates=[0], finalStates=[0], alphabetTransitions={'a': [[0]], 'b': [[0]], 'c': [[0]]})
+            fsa = NFA(numStates=1, startStates=[0], finalStates=[0], alphabetTransitions={'a': [[0]], 'b': [[0]], 'c': [[0]], 'e': [[1]]})
             return fsa
         elif symbol == 'a':
-            fsa = NFA(numStates=2, startStates=[0], finalStates=[1], alphabetTransitions={'a': [[0,1], [0,0]], 'b': [[0,0], [0,0]], 'c': [[0,0], [0,0]]})
+            fsa = NFA(numStates=2, startStates=[0], finalStates=[1], alphabetTransitions={'a': [[0,1], [0,0]], 'b': [[0,0], [0,0]], 'c': [[0,0], [0,0]], 'e': [[1,0], [0,1]]})
         elif symbol == 'b':
-            fsa = NFA(numStates=2, startStates=[0], finalStates=[1], alphabetTransitions={'a': [[0,0], [0,0]], 'b': [[0,1], [0,0]], 'c': [[0,0], [0,0]]})
+            fsa = NFA(numStates=2, startStates=[0], finalStates=[1], alphabetTransitions={'a': [[0,0], [0,0]], 'b': [[0,1], [0,0]], 'c': [[0,0], [0,0]], 'e': [[1,0], [0,1]]})
         elif symbol == 'c':
-            fsa = NFA(numStates=2, startStates=[0], finalStates=[1], alphabetTransitions={'a': [[0,0], [0,0]], 'b': [[0,0], [0,0]], 'c': [[0,1], [0,0]]})    
+            fsa = NFA(numStates=2, startStates=[0], finalStates=[1], alphabetTransitions={'a': [[0,0], [0,0]], 'b': [[0,0], [0,0]], 'c': [[0,1], [0,0]], 'e': [[1,0], [0,1]]})    
         
         return fsa
 
@@ -206,6 +209,7 @@ class ETree:
             fsaY = self.buildNFA(root.right)
             fsa = self.operatorDot(fsaX, fsaY)
             return fsa
+
         elif root.val == '+':
             fsaX = self.buildNFA(root.left)
             fsaY = self.buildNFA(root.right)
