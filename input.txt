@@ -1,7 +1,7 @@
-3
-(a*)
+4
+a + b
 1
-aaaaaaaa
+a
 (b*)
 1
 bbbbbbbb
@@ -9,3 +9,7 @@ bbbbbbbb
 2
 a
 b
+(a.b*) + (b.c*)*
+2
+abbbbbbb
+abccbcbbbcbcbbcbcbbc

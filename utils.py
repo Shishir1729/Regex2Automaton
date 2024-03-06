@@ -87,19 +87,102 @@ class ETree:
     ###################################################################
     # .
     def operatorDot(self, fsaX, fsaY):
-        pass
+        numStates = fsaX.numStates + fsaY.numStates
+        startStates = fsaX.startStates
+        finalStates = [state+fsaX.numStates for state in fsaY.finalStates]
+        alphabetTransitions = {}
+        for symbol in 'abc':
+            alphabetTransitions[symbol] = []
+            for state in range(numStates):
+                alphabetTransitions[symbol].append([0]*numStates)
+            for state in range(fsaX.numStates):
+                alphabetTransitions[symbol][state] = fsaX.alphabetTransitions[symbol][state].extend([0]*fsaY.numStates)
+                for i in range(fsaX.numStates):
+                    if fsaX.alphabetTransitions[symbol][state][i] == 1 and i in fsaX.finalStates:
+                        for j in range(fsaX.numStates, numStates):
+                            if j - fsaX.numStates in fsaY.startStates:
+                                alphabetTransitions[symbol][state][j] = 1
+            for state in range(fsaX.numStates, numStates):
+                alphabetTransitions[symbol][state] = [0] * fsaX.numStates + fsaY.alphabetTransitions[symbol][state-fsaX.numStates]
+        
+        for i in fsaX.startStates:
+            if i in fsaX.finalStates:
+                for j in fsaY.startStates:
+                    for symbol in 'abc':
+                        for k in range(fsaY.numStates):
+                            if fsaY.alphabetTransitions[symbol][j][k] == 1:
+                                alphabetTransitions[symbol][i][fsaX.numStates+k] = 1
+        
+        fsa = NFA(numStates=numStates, startStates=startStates, finalStates=finalStates, alphabetTransitions=alphabetTransitions)
+        return fsa
+
+        
 
     # +
     def operatorPlus(self, fsaX, fsaY):
-        pass
+        #add fsaX.numstates to all states of fsaY
+        fsaY.numStates = fsaX.numStates + fsaY.numStates
+        fsaY.startStates = [state+fsaX.numStates for state in fsaY.startStates]
+        fsaY.finalStates = [state+fsaX.numStates for state in fsaY.finalStates]
+        for symbol in 'abc':
+            fsaY.alphabetTransitions[symbol] = fsaX.alphabetTransitions[symbol] + fsaY.alphabetTransitions[symbol]
+            for state in range(fsaX.numStates, fsaY.numStates):
+                #Add 0s in the beginning for the new states
+                fsaY.alphabetTransitions[symbol][state] = [0]*fsaX.numStates + fsaY.alphabetTransitions[symbol][state]
 
+            for state in range(fsaX.numStates):
+                fsaY.alphabetTransitions[symbol][state] = fsaX.alphabetTransitions[symbol][state]
+                fsaY.alphabetTransitions[symbol][state].extend([0]*(fsaY.numStates-fsaX.numStates))
+
+        fsaY.startStates = fsaX.startStates + fsaY.startStates
+        fsaY.finalStates = fsaX.finalStates + fsaY.finalStates
+        return fsaY
+    
     # *
     def operatorStar(self, fsaX):
-        pass
+        for symbol in 'abc':
+            fsaX.alphabetTransitions[symbol].append([0]*(fsaX.numStates+1))
+            for state in range(fsaX.numStates):
+                fsaX.alphabetTransitions[symbol][state].append(0)
+            
+            for state in range(fsaX.numStates):
+                if state in fsaX.startStates:
+                    for i in range(fsaX.numStates):
+                        if fsaX.alphabetTransitions[symbol][state][i] == 1:
+                            fsaX.alphabetTransitions[symbol][fsaX.numStates][i] = 1
+                for i in range(fsaX.numStates):
+                    if fsaX.alphabetTransitions[symbol][state][i] == 1 and i in fsaX.finalStates:
+                        fsaX.alphabetTransitions[symbol][state][fsaX.numStates] = 1
+
+            
+            #Decide self loop
+            for state in range(fsaX.numStates):
+                if state in fsaX.startStates:
+                    for i in range(fsaX.numStates):
+                        if fsaX.alphabetTransitions[symbol][state][i] == 1 and i in fsaX.finalStates:
+                            fsaX.alphabetTransitions[symbol][fsaX.numStates][fsaX.numStates] = 1
+
+
+            
+        fsaX.numStates += 1
+        fsaX.startStates = [fsaX.numStates-1]
+        fsaX.finalStates = [fsaX.numStates-1]
+
+        return fsaX
 
     # a, b, c and e for epsilon
     def alphabet(self, symbol):
-        pass
+        if symbol == 'e':
+            fsa = NFA(numStates=1, startStates=[0], finalStates=[0], alphabetTransitions={'a': [[0]], 'b': [[0]], 'c': [[0]]})
+            return fsa
+        elif symbol == 'a':
+            fsa = NFA(numStates=2, startStates=[0], finalStates=[1], alphabetTransitions={'a': [[0,1], [0,0]], 'b': [[0,0], [0,0]], 'c': [[0,0], [0,0]]})
+        elif symbol == 'b':
+            fsa = NFA(numStates=2, startStates=[0], finalStates=[1], alphabetTransitions={'a': [[0,0], [0,0]], 'b': [[0,1], [0,0]], 'c': [[0,0], [0,0]]})
+        elif symbol == 'c':
+            fsa = NFA(numStates=2, startStates=[0], finalStates=[1], alphabetTransitions={'a': [[0,0], [0,0]], 'b': [[0,0], [0,0]], 'c': [[0,1], [0,0]]})    
+        
+        return fsa
 
     # Traverse the regular expression tree(ETree)
     # calling functions on each node and hence
@@ -116,11 +199,22 @@ class ETree:
         transitions = {}
 
         # write code to populate the above datastructures for a regex tree
-
-        self.nfa = NFA(numStates, initialState, finalStates, transitions)
-
-        # print NFA
-
-        return self.nfa
+        if root.val == '.':
+            fsaX = self.buildNFA(root.left)
+            fsaY = self.buildNFA(root.right)
+            fsa = self.operatorDot(fsaX, fsaY)
+            return fsa
+        elif root.val == '+':
+            fsaX = self.buildNFA(root.left)
+            fsaY = self.buildNFA(root.right)
+            fsa = self.operatorPlus(fsaX, fsaY)
+            return fsa
+        elif root.val == '*':
+            fsaX = self.buildNFA(root.left)
+            fsa = self.operatorStar(fsaX)
+            return fsa
+        else:
+            fsa = self.alphabet(root.val)
+            return fsa
 
     ######################################################################
