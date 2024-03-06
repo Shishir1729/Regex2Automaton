@@ -96,7 +96,9 @@ class ETree:
             for state in range(numStates):
                 alphabetTransitions[symbol].append([0]*numStates)
             for state in range(fsaX.numStates):
-                alphabetTransitions[symbol][state] = fsaX.alphabetTransitions[symbol][state].extend([0]*fsaY.numStates)
+                alphabetTransitions[symbol][state] = fsaX.alphabetTransitions[symbol][state]
+                alphabetTransitions[symbol][state].extend([0]*(fsaY.numStates))
+            for state in range(fsaX.numStates):
                 for i in range(fsaX.numStates):
                     if fsaX.alphabetTransitions[symbol][state][i] == 1 and i in fsaX.finalStates:
                         for j in range(fsaX.numStates, numStates):

@@ -9,7 +9,7 @@ bbbbbbbb
 2
 a
 b
-(a.b*) + (b.c*)*
+(a.(b*)) . (b.(c*))*
 2
 abbbbbbb
 abccbcbbbcbcbbcbcbbc
